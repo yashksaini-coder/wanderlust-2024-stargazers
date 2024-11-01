@@ -4,15 +4,15 @@ on:
       repoOrg:
         description: "Repo Org"
         required: true
-        default: "pomber"
+        default: "Soujanya2004"
       repoName:
         description: "Repo Name"
         required: true
-        default: "didact"
+        default: "wanderlust-2024"
       starCount:
         description: "Star Count"
         required: true
-        default: "100"
+        default: "25"
       duration:
         description: "Duration (seconds)"
         required: false
