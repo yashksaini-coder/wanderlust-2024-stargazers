@@ -1,3 +1,5 @@
+name: Render Video Daily
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,35 +19,58 @@ on:
         description: "Duration (seconds)"
         required: false
         default: "15"
-name: Render video
+  schedule:
+    # Run every day at 00:00 UTC
+    - cron: '0 0 * * *'
+
 jobs:
   render:
     name: Render video
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
-      - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v4  # Updated to latest version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4  # Updated to latest version
         with:
-          node-version: 16
-      - name: Install Fallback fonts (fonts)
+          node-version: '18'  # Updated to more recent Node.js version
+          cache: 'npm'  # Added npm caching for faster dependencies
+
+      - name: Install Fallback Fonts
         run: |
           sudo apt-get update -yqq
           sudo apt-get install -yq --no-install-recommends \
             fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji fonts-noto-mono
-      - name: Install dependencies (node modules)
-        run: npm i
-      - name: Define input props
-        run: echo $WORKFLOW_INPUT | tee input-props.json | jq -C '.' # Inject to file, inspect to logs
-        env:
-          WORKFLOW_INPUT: ${{ toJson(github.event.inputs) }}
-      - name: Render video
+
+      - name: Install Dependencies
+        run: |
+          npm ci  # Use npm ci for more reliable dependency installation
+          npm update  # Update dependencies to latest compatible versions
+
+      - name: Define Input Props
+        run: |
+          echo '${{ toJson(github.event.inputs || fromJson('{"repoOrg":"Soujanya2004","repoName":"wanderlust-2024","starCount":"25","duration":"15"}')) }}' | tee input-props.json | jq -C '.'
+
+      - name: Render Video
         run: npm run build -- --props="./input-props.json"
         env:
           REMOTION_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload video
-        uses: actions/upload-artifact@v3
+
+      - name: Ensure out/ Directory Exists
+        run: mkdir -p out
+
+      - name: Upload Video Artifact
+        uses: actions/upload-artifact@v4  # Updated to latest version
         with:
-          name: out.mp4
+          name: rendered-video
           path: out/Main.mp4
+          retention-days: 30  # Keep artifact for 30 days
+
+      - name: Store Video in Repository
+        run: |
+          git config user.name yashksaini-coder
+          git config user.email 115717039+yashksaini-coder@users.noreply.github.com
+          git add .
+          git commit -m "Add rendered video" || echo "No changes to commit"
+          git push
